@@ -148,6 +148,9 @@ const money = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+const FREE_DELIVERY_MINIMUM = 50;
+const DELIVERY_FEE = 5;
+
 async function api(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     headers: {
@@ -248,8 +251,13 @@ function descontoCarrinho() {
   return totalItens() >= 6 ? subtotalCarrinho() * 0.1 : 0;
 }
 
+function taxaEntregaCarrinho() {
+  const subtotal = subtotalCarrinho();
+  return store.carrinho.length && subtotal < FREE_DELIVERY_MINIMUM ? DELIVERY_FEE : 0;
+}
+
 function totalCarrinho() {
-  return subtotalCarrinho() - descontoCarrinho();
+  return subtotalCarrinho() - descontoCarrinho() + taxaEntregaCarrinho();
 }
 
 async function addToCart(produtoId, quantidade = 1) {
@@ -486,6 +494,8 @@ function renderCart() {
 
   const faltam = Math.max(0, 6 - totalItens());
   const desconto = descontoCarrinho();
+  const taxaEntrega = taxaEntregaCarrinho();
+  const faltaFreteGratis = Math.max(0, FREE_DELIVERY_MINIMUM - subtotalCarrinho());
 
   app.innerHTML = `
     <h1 class="page-title">Carrinho</h1>
@@ -525,7 +535,10 @@ function renderCart() {
 
     <section class="summary-box">
       <div class="summary-row"><span>Subtotal</span><strong>${money.format(subtotalCarrinho())}</strong></div>
-      <div class="summary-row"><span>Taxa de entrega</span><strong>Grátis</strong></div>
+      <div class="summary-row"><span>Taxa de entrega</span><strong>${taxaEntrega ? money.format(taxaEntrega) : "Grátis"}</strong></div>
+      <p class="section-note">${
+        taxaEntrega ? `Faltam ${money.format(faltaFreteGratis)} para entrega grátis.` : "Entrega grátis aplicada."
+      }</p>
       <div class="summary-row"><span>Desconto</span><strong>${money.format(desconto)}</strong></div>
       <div class="summary-row summary-total"><span>Total</span><strong>${money.format(totalCarrinho())}</strong></div>
       <button class="primary-button" data-action="finish-order">Finalizar compra</button>

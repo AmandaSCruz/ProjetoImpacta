@@ -3,6 +3,9 @@ const ProductModel = require("./ProductModel");
 const { httpError } = require("../utils/http");
 const { isDatabaseEnabled, query } = require("../database/connection");
 
+const FREE_DELIVERY_MINIMUM = 50;
+const DELIVERY_FEE = 5;
+
 async function addItem(produtoId, quantidade = 1) {
   const productId = Number(produtoId);
   const amount = Number(quantidade);
@@ -187,14 +190,15 @@ function buildSummary(itens) {
   const quantidadeTotal = itens.reduce((total, item) => total + item.quantidade, 0);
   const subtotal = round(itens.reduce((total, item) => total + item.total, 0));
   const desconto = quantidadeTotal >= 6 ? round(subtotal * 0.1) : 0;
+  const entrega = itens.length && subtotal < FREE_DELIVERY_MINIMUM ? DELIVERY_FEE : 0;
 
   return {
     itens,
     quantidadeTotal,
     subtotal,
     desconto,
-    entrega: 0,
-    total: round(subtotal - desconto),
+    entrega,
+    total: round(subtotal - desconto + entrega),
   };
 }
 

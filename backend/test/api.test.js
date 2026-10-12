@@ -59,6 +59,8 @@ test("lista produtos e permite criar pedido", async () => {
     });
     assert.equal(carrinho.status, 201);
     assert.equal(carrinho.body.quantidadeTotal, 2);
+    assert.equal(carrinho.body.entrega, 5);
+    assert.equal(carrinho.body.total, 22);
 
     const pedido = await request(server, "POST", "/api/pedidos", {
       endereco: "Rua das Flores, 123",
