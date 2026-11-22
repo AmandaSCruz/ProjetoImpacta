@@ -181,6 +181,38 @@ button {
   box-shadow: 0 8px 20px rgba(94, 58, 47, 0.08);
 }
 
+.favorite-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--primary-dark);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.favorite-button.is-active {
+  background: var(--surface-soft);
+  color: #d84f68;
+}
+
+.favorite-button:hover,
+.favorite-button:focus-visible {
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.topbar .favorite-button {
+  position: static;
+}
+
 .product-main {
   width: 100%;
   padding: 0;

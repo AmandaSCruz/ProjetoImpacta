@@ -113,6 +113,19 @@ const state = {
   apiOnline: true,
 };
 
+const FREE_DELIVERY_MINIMUM = 50;
+const DELIVERY_FEE = 5;
+const FAVORITES_STORAGE_KEY = "cupcakeshop-favoritos";
+
+function loadFavoriteIds() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY) || "[]");
+    return new Set(saved.map(Number).filter(Number.isInteger));
+  } catch {
+    return new Set();
+  }
+}
+
 const store = {
   usuario: {
     nome: "Maria Silva",
@@ -121,6 +134,7 @@ const store = {
     endereco: "Rua das Flores, 123 - São Paulo, SP",
   },
   carrinho: [],
+  favoritos: loadFavoriteIds(),
   pedidos: [
     {
       id: "ORD-001",
@@ -147,9 +161,6 @@ const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
-
-const FREE_DELIVERY_MINIMUM = 50;
-const DELIVERY_FEE = 5;
 
 async function api(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
@@ -236,6 +247,36 @@ function produtoPorId(id) {
   return produtos.find((produto) => produto.id === Number(id));
 }
 
+function isFavorito(produtoId) {
+  return store.favoritos.has(Number(produtoId));
+}
+
+function alternarFavorito(produtoId) {
+  const id = Number(produtoId);
+  if (isFavorito(id)) {
+    store.favoritos.delete(id);
+    showToast("Removido dos favoritos");
+  } else {
+    store.favoritos.add(id);
+    showToast("Adicionado aos favoritos");
+  }
+
+  localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify([...store.favoritos]));
+}
+
+function favoriteButton(produto) {
+  const ativo = isFavorito(produto.id);
+  return `
+    <button
+      class="favorite-button ${ativo ? "is-active" : ""}"
+      data-action="toggle-favorite"
+      data-product-id="${produto.id}"
+      aria-label="${ativo ? "Remover" : "Adicionar"} ${escapeHTML(produto.nome)} ${ativo ? "dos" : "aos"} favoritos"
+      aria-pressed="${ativo}"
+    >${ativo ? "♥" : "♡"}</button>
+  `;
+}
+
 function totalItens() {
   return store.carrinho.reduce((total, item) => total + item.quantidade, 0);
 }
@@ -292,6 +333,7 @@ function productCard(produto) {
 
   return `
     <article class="product-card">
+      ${favoriteButton(produto)}
       <button class="product-main" data-action="open-product" data-product-id="${produto.id}">
         <img src="${produto.imagem}" alt="${escapeHTML(produto.nome)}" />
         <div class="product-info">
@@ -366,7 +408,9 @@ function produtosFiltrados() {
   const termo = state.busca.trim().toLowerCase();
   return produtos.filter((produto) => {
     const matchBusca = produto.nome.toLowerCase().includes(termo);
-    const matchFiltro = state.filtro === "Todos" || produto.categoria === state.filtro;
+    const matchFiltro =
+      state.filtro === "Todos" ||
+      (state.filtro === "Favoritos" ? isFavorito(produto.id) : produto.categoria === state.filtro);
     return matchBusca && matchFiltro;
   });
 }
@@ -383,7 +427,7 @@ function renderCatalogGrid() {
 }
 
 function renderCatalog() {
-  const categorias = ["Todos", "Frutas", "Chocolate", "Clássicos", "Especiais"];
+  const categorias = ["Todos", "Favoritos", "Frutas", "Chocolate", "Clássicos", "Especiais"];
   app.innerHTML = `
     <h1 class="page-title">Catálogo de Cupcakes</h1>
     <div class="search-line">
@@ -414,7 +458,7 @@ function renderProductDetail() {
     <div class="topbar">
       <button class="icon-button" data-action="navigate" data-route="catalog" aria-label="Voltar para catálogo">←</button>
       <h1>Detalhes do Produto</h1>
-      <span></span>
+      ${favoriteButton(produto)}
     </div>
 
     <section class="product-hero">
@@ -717,6 +761,10 @@ document.addEventListener("click", async (event) => {
     }
     if (action === "navigate") go(target.dataset.route);
     if (action === "open-product") go("product", target.dataset.productId);
+    if (action === "toggle-favorite") {
+      alternarFavorito(target.dataset.productId);
+      render();
+    }
     if (action === "add-card") {
       await addToCart(target.dataset.productId);
       render();
